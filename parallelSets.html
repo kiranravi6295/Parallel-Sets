@@ -1,395 +1,576 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+        <style>
+            .svg {
+                width: 100%;
+                height: 100%;
+            }
+            .category-0 {
+                fill: #1f77b4;
+                stroke: #1f77b4;
+                stroke-opacity: 0;
+                fill-opacity: .5
+            }
+            .category-1 {
+                fill: #ff7f0e;
+                stroke: #ff7f0e;
+                stroke-opacity: 0;
+                fill-opacity: .5
+            }
+            .category-2 {
+                fill: #2ca02c;
+                stroke: #2ca02c;
+                stroke-opacity: 0;
+                fill-opacity: .5
+            }
+            .category-3 {
+                fill: #d62728;
+                stroke: #d62728;
+                stroke-opacity: 0;
+                fill-opacity: .5
+            }
+            .category-4 {
+                fill: #9467bd;
+                stroke: #9467bd;
+                stroke-opacity: 0;
+                fill-opacity: .5
+            }
+            .category-5 {
+                fill: #8c564b;
+                stroke: #8c564b;
+                stroke-opacity: 0;
+                fill-opacity: .5
+            }
+            .category-6 {
+                fill: #e377c2;
+                stroke: #e377c2;
+                stroke-opacity: 0;
+                fill-opacity: .5
+            }
+            .category-7 {
+                fill: #7f7f7f;
+                stroke: #7f7f7f;
+                stroke-opacity: 0;
+                fill-opacity: .5
+            }
+            .category-8 {
+                fill: #bcbd22;
+                stroke: #bcbd22;
+                stroke-opacity: 0;
+                fill-opacity: .5
+            }
+            .category-9 {
+                fill: #17becf;
+                stroke: #17becf;
+                stroke-opacity: 0;
+                fill-opacity: .5
+            }
+            .category-0:hover,
+            .category-1:hover,
+            .category-2:hover,
+            .category-3:hover,
+            .category-4:hover,
+            .category-5:hover,
+            .category-6:hover,
+            .category-7:hover,
+            .category-8:hover,
+            .category-9:hover {
+                fill-opacity: 0.9;
+            }
+            .dimension {
+                font-size: 1.5em;
+                fill: #333;
+                font-weight: bold;
+            }
+            .category {
+                text-align: center;
+                font-family: "PT Sans", Helvetica;
+                font-weight: 300;
+                fill: #333;
+                font-weight: bold;
+            }
+            line {
+                stroke: #000;
+                stroke-width: 1;
+            }
+            .tooltip {
+                background-color: rgba(242, 242, 242, .6);
+                position: absolute;
+                padding: 5px;
+            }
+            .select-div {
+                margin-top: 1rem;
+            }
+            .select-label {
+                margin-right: 1rem;
+            }
+            .select-option {
+                margin-right: 1rem;
+            }
+            .select-button, .select-remove-button {
+                margin-right: 1rem;
+            }
+            .parent-div {
+                border: 1px black solid;
+                width: fit-content;
+            }
+            .parent-inner {
+                margin-left: 0.5rem;
+            }
+            .select-divs, .plot-button {
+                margin-bottom: 1rem;
+            }
+        </style>
+        <script src="https://d3js.org/d3.v5.min.js"></script>
+        <script src="sight.js"></script>
+    </head>
+    <body>
+        <div class="parent-div">
+            <p class="parent-inner">Browse JSON File : <input type="file" name="jsonInput" class="jsonInput" accept=".json"/></p>
+            <div class="select-divs parent-inner"></div>
+            <input type="button" id="plot-button" value="Plot" class="plot-button parent-inner" disabled/>
+        </div>
+        <div class="svg">
+        </div>
+        <div class="parsets tooltip" style="display: none;"></div>
+        <script type="text/javascript">
+            var file_input = undefined;
+            const input = document.querySelector('.jsonInput');
+            input.addEventListener('change', updateDimensions);
+            const plot = document.querySelector('#plot-button');
+            plot.addEventListener('click', plotDimensions);
+            function plotDimensions(event) {
+                selected_dimensions = getSelectedDimensions();
+                plotParallelSet(file_input, selected_dimensions);
+            }
+            function getSelectedDimensions() {
+                var selected_dimensions = [];
+                var divs = document.querySelector('.select-divs');
+                for (dim_divs of divs.children) {
+                    var div_children = dim_divs.children;
+                    var select_tag = div_children[1];
+                    var selected_option = select_tag.selectedOptions[0].label;
+                    selected_dimensions.push(selected_option);
+                }
+                return selected_dimensions;
+            }
+            function renderDimensionSelection(index, keys) {
+                var plot_button = document.querySelector("#plot-button");
+                plot_button.setAttribute("disabled", true);
+                if (index > 1) {
+                    var prev_button = document.querySelector("#select-" + (index - 1) + "-button");
+                    prev_button.setAttribute("disabled", true);
+                }
 
-<head>
-  <meta charset="utf-8">
-  <title></title>
-  <style>
-  .svg {
-    width: 100%;
-    height: 100%;
-  }
+                if (index > 2) {
+                    var prev_remove_button = document.querySelector("#select-remove-" + (index - 1) + "-button");
+                    prev_remove_button.setAttribute("disabled", true);
+                }
 
-  .category-1 {
-    fill: #ff7f0e;
-    stroke: #ff7f0e;
-    opacity: 0.8;
-  }
+                var div = document.createElement("div");
+                div.setAttribute("id", "select-" + index + "-div");
+                div.setAttribute("class", "select-div");
 
-  .category-0 {
-    fill: #1f77b4;
-    stroke: #1f77b4;
-    opacity: 0.8;
-  }
+                var label = document.createElement("label");
+                label.setAttribute("for", "select-" + index);
+                label.setAttribute("id", "select-" + index + "-label");
+                label.setAttribute("class", "select-label");
+                if (index == 1) {
+                    label.innerHTML = "Select Base Dimension:";
+                } else {
+                    label.innerHTML = "Select Dimension " + index + " :";
+                }
 
-  .category-0:hover, .category-1:hover {
-    opacity: 0.95;
-  }
+                var select = document.createElement("select");
+                select.setAttribute("id", "select-" + index);
+                select.setAttribute("class", "select-option");
 
-  .dimension {
-    font-size: 1.5em;
-    fill: #333;
-    font-weight: bold;
-  }
+                selectedDimensions = getSelectedDimensions();
 
-  .category {
-    text-align: center;
-    font-family: "PT Sans", Helvetica;
-    font-weight: 300;
-    fill: #333;
-    font-weight: bold;
-  }
+                keys.forEach((key) => {
+                    if (selectedDimensions.indexOf(key) == -1) {
+                        var opt = document.createElement("option");
+                        opt.innerHTML = key;
+                        select.appendChild(opt);
+                    }
+                })
 
-  line {
-    stroke: #000;
-    stroke-width: 1;
-  }
+                var button = document.createElement("input");
+                button.setAttribute("id", "select-" + index + "-button");
+                button.setAttribute("class", "select-button");
+                button.setAttribute("type", "button");
+                button.setAttribute("value", "+");
+                button.setAttribute("disabled", true);
 
-  .tooltip {
-    background-color: rgba(242, 242, 242, .6);
-    position: absolute;
-    padding: 5px;
-  }
-  </style>
-  <script src="https://d3js.org/d3.v5.min.js"></script>
-  <script src="sight.js"></script>
-</head>
+                select.addEventListener('change', function(button, select, index) {
+                    button.removeAttribute("disabled");
+                    if (index > 2) {
+                        var plot_button = document.querySelector("#plot-button");
+                        plot_button.removeAttribute("disabled");
+                    }
+                }.bind(null, button, select, index), false);
+                button.addEventListener('click', renderDimensionSelection.bind(this, index + 1, keys));
 
-<body>
-  <div class="svg">
-  </div>
-  <div class="parsets tooltip" style="display: none;"></div>
-  <script type="text/javascript">
-  //var totalWidth = 960;
-  var overallGroups = {};
-  var dimensions = ["Survived", "Embarked", "Sex", "Class"];
-  var getCategoryRectSize = function(dimensionSizeJson, totalWidth, availableRectSlot) {
-    var categoryRectSize = {};
-    dimensions.forEach(function(dimension) {
-      var dimensionSize = dimensionSizeJson[dimension];
-      var totalLength = dimensionSize["totalLength"];
-      categoryRectSize[dimension] = {};
-      for (var key in dimensionSize) {
-        if (dimensionSize.hasOwnProperty(key) && key != "totalLength") {
-          var categoryLength = dimensionSize[key];
-          categoryRectSize[dimension][key] = Math.floor((categoryLength * totalWidth * availableRectSlot) / totalLength);
-        }
-      }
-    });
-    return categoryRectSize;
-  }
-  var getCategoryGap = function(dimensionSizeJson, totalWidth, availableGapSlot) {
-    var categoryGapSize = {};
-    dimensions.forEach(function(dimension) {
-      var dimensionSize = dimensionSizeJson[dimension];
-      var totalCategories = 0;
-      for (var key in dimensionSize) {
-        if (dimensionSize.hasOwnProperty(key) && key != "totalLength") {
-          totalCategories = totalCategories + 1;
-        }
-      }
-      if (totalCategories == 0) {
-        categoryGapSize[dimension] = 0;
-      }
-      categoryGapSize[dimension] = Math.floor((totalWidth * availableGapSlot) / totalCategories);
-    });
-    return categoryGapSize;
-  }
-  var getDimensionCategories = function(d3Data) {
-    var dimensionCategories = {};
-    dimensions.forEach(function(dimension) {
-      var groups = getOverallGroups(d3Data, dimension);
-      dimensionCategories[dimension] = [];
-      groups.forEach(function(group) {
-        dimensionCategories[dimension].push(group.key);
-      });
-    });
-    return dimensionCategories;
-  }
-  var getDimensionCategoryHorizontalStartPoints = function(d3Data, categoryRectSize, categoryGap) {
-    var dimensionCategoryHorizontalStartPoint = {};
-    var dimensionCategories = getDimensionCategories(d3Data);
-    dimensions.forEach(function(dimension) {
-      dimensionCategoryHorizontalStartPoint[dimension] = {};
-      var groups = dimensionCategories[dimension];
-      var nextStartPoint = 0;
-      groups.forEach(function(group) {
-        dimensionCategoryHorizontalStartPoint[dimension][group] = nextStartPoint;
-        nextStartPoint = nextStartPoint + categoryRectSize[dimension][group] + categoryGap[dimension];
-      });
-    });
-    return dimensionCategoryHorizontalStartPoint;
-  }
-  var getDimensionCategoryVerticalStartPoints = function(height) {
-    var dimensionCategoryVerticalStartPoint = {};
-    var baseStartPoint = Math.floor(height / 13.33);
-    var stepSize = Math.floor((height - baseStartPoint) / (dimensions.length - 1));
-    dimensions.forEach(function(dimension) {
-      dimensionCategoryVerticalStartPoint[dimension] = baseStartPoint;
-      baseStartPoint = baseStartPoint + stepSize;
-    });
-    return dimensionCategoryVerticalStartPoint;
-  }
-  var getDimensionSplitSize = function(d3Data) {
-    var levelPath = [];
-    var levelPaths = [];
-    dimensions.forEach(function(dimension) {
-      var groups = getOverallGroups(d3Data, dimension);
-      levelPath.push(groups.length);
-    });
-    for (var level = 1; level < levelPath.length; level++) {
-      levelPath[level] = levelPath[level] * levelPath[level - 1];
-      levelPaths.push(levelPath[level]);
-    }
-    return levelPaths;
-  }
-  var getOverallGroups = function(d3Data, dimension) {
-    if (overallGroups[dimension]) {
-      return overallGroups[dimension];
-    } else {
-      var groups = d3.nest()
-        .key(function(d) {
-          return d[dimension];
-        })
-        .entries(d3Data);
-      overallGroups[dimension] = groups;
-      return overallGroups[dimension];
-    }
-  }
-  var prepareSizeJson = function(d3Data) {
-    var sizeJson = {};
-    dimensions.forEach(function(dimension) {
-      var groups = getOverallGroups(d3Data, dimension);
-      var dimensionSizeJson = {};
-      var dimensionTotal = 0;
-      groups.forEach(function(group) {
-        dimensionSizeJson[group.key] = group.values.length;
-        dimensionTotal = dimensionTotal + group.values.length;
-      });
-      sizeJson[dimension] = dimensionSizeJson;
-      sizeJson[dimension]["totalLength"] = dimensionTotal;
-    });
-    return sizeJson;
-  }
-  var prepareJson = function(d3Data, index, distributionJson, dimensionSizeJson, categoryRectSize, fromKey, baseCategory, totalLength) {
-    if (index == dimensions.length) {
-      return;
-    } else {
-      var groups = d3.nest()
-        .key(function(d) {
-          return d[dimensions[index]];
-        })
-        .entries(d3Data);
-      var finalDistribution = {};
-      groups.forEach(function(d) {
-        if (distributionJson[d.key] === undefined) {
-          distributionJson[d.key] = {};
-        }
-        var newDistributionJson = prepareJson(d.values, index + 1, distributionJson[d.key], dimensionSizeJson, categoryRectSize, d.key, baseCategory, totalLength);
-        if (newDistributionJson === undefined) {
-          newDistributionJson = {};
-          var path = {};
-          path["baseCategory"] = baseCategory;
-          path["fromKey"] = fromKey;
-          path["toKey"] = d.key;
-          path["totalLength"] = totalLength;
-          path["catLength"] = d.values.length;
-          path["value"] = Math.floor((categoryRectSize[dimensions[index]][d.key] * d.values.length) / dimensionSizeJson[dimensions[index]][d.key]);
-          finalDistribution[d.key] = {};
-          finalDistribution[d.key] = path;
-        } else {
-          var parentDistributionJson = {};
-          var path = {};
-          path["baseCategory"] = baseCategory;
-          path["fromKey"] = fromKey;
-          path["toKey"] = d.key;
-          path["totalLength"] = totalLength;
-          path["catLength"] = d.values.length;
-          path["value"] = Math.floor((categoryRectSize[dimensions[index]][d.key] * d.values.length) / dimensionSizeJson[dimensions[index]][d.key]);
-          finalDistribution[d.key] = {};
-          finalDistribution[d.key] = path;
-          finalDistribution[d.key]["children"] = newDistributionJson;
-        }
-        finalDistribution["level"] = index;
-      });
-      return finalDistribution;
-    }
-  }
-  var prepareJsonPrimary = function(d3Data, distributionJson, dimensionSizeJson, categoryRectSize) {
-    distributionJson = {};
-    var groups = d3.nest()
-      .key(function(d) {
-        return d[dimensions[0]];
-      })
-      .entries(d3Data);
-    groups.forEach(function(d) {
-      if (distributionJson[d.key] === undefined) {
-        distributionJson[d.key] = {};
-      }
-      newistributionJson = prepareJson(d.values, 1, distributionJson[d.key], dimensionSizeJson, categoryRectSize, d.key, d.key, d3Data.length);
-      var path = {};
-      path["baseCategory"] = d.key;
-      path["totalLength"] = d3Data.length;
-      path["catLength"] = d.values.length;
-      path["value"] = Math.floor((categoryRectSize[dimensions[0]][d.key] * d.values.length) / dimensionSizeJson[dimensions[0]][d.key]);
-      distributionJson[d.key] = path;
-      distributionJson[d.key]["children"] = newistributionJson;
-    });
-    distributionJson["level"] = 0;
-    return distributionJson;
-  }
-  var buildModifiedPaths = function(finalPaths, dimensionJson, dimensionCategoryHorizontalStartPointsFrom, dimensionCategoryHorizontalStartPointsTo, dimensionCategoryVerticalStartPoints, dimensionCategories) {
-    var level = dimensionJson["level"];
-    var dimensionFrom = dimensions[level - 1];
-    var dimensionTo = dimensions[level];
-    if (level == 0) {
-      var zeroLevelCategories = dimensionCategories[dimensions[level]];
-      zeroLevelCategories.forEach(function(category) {
-        var path = dimensionJson[category];
-        if (path.hasOwnProperty("children")) {
-          buildModifiedPaths(finalPaths, path["children"], dimensionCategoryHorizontalStartPointsFrom, dimensionCategoryHorizontalStartPointsTo, dimensionCategoryVerticalStartPoints, dimensionCategories);
-        }
-      });
-    } else if (level > 0) {
-      var levelCategories = dimensionCategories[dimensions[level]];
-      levelCategories.forEach(function(category) {
-        var path = dimensionJson[category];
-        if (path != undefined) {
-          var fromKey = path.fromKey;
-          var toKey = path.toKey;
-          var pathLength = path.value;
-          var baseCategory = path.baseCategory;
-          var catLength = path.catLength;
-          var totalLength = path.totalLength;
-          var pathHorizontalStartFrom = dimensionCategoryHorizontalStartPointsFrom[dimensionFrom][fromKey];
-          var pathHorizontalStartTo = dimensionCategoryHorizontalStartPointsTo[dimensionTo][toKey];
-          var pathVerticalStartFrom = dimensionCategoryVerticalStartPoints[dimensionFrom];
-          var pathVerticalStartTo = dimensionCategoryVerticalStartPoints[dimensionTo];
-          var pathHorizontalEndFrom = pathHorizontalStartFrom + pathLength;
-          var pathHorizontalEndTo = pathHorizontalStartTo + pathLength;
-          var finalCategory = "category-" + baseCategory;
-          var finalPath = "M " + pathHorizontalStartFrom + " " + pathVerticalStartFrom +
-            " L " + pathHorizontalStartTo + " " + pathVerticalStartTo +
-            " h " + pathLength +
-            " L " + pathHorizontalEndFrom + " " + pathVerticalStartFrom +
-            "Z"; //M 53.8119 45 L 220.727 229.333 h 582.535 L 636.347 45 Z"
-          var categoryPath = {};
-          categoryPath["baseCategory"] = finalCategory;
-          categoryPath["finalPath"] = finalPath;
-          categoryPath["tooltip"] = catLength + " / " + totalLength + "  ( " + Math.floor(catLength * 100 / totalLength) + " % )";
-          finalPaths.push(categoryPath);
-          dimensionCategoryHorizontalStartPointsFrom[dimensionFrom][fromKey] = dimensionCategoryHorizontalStartPointsFrom[dimensionFrom][fromKey] + pathLength;
-          dimensionCategoryHorizontalStartPointsTo[dimensionTo][toKey] = dimensionCategoryHorizontalStartPointsTo[dimensionTo][toKey] + pathLength;
-          if (path.hasOwnProperty("children")) {
-            buildModifiedPaths(finalPaths, path["children"], dimensionCategoryHorizontalStartPointsFrom, dimensionCategoryHorizontalStartPointsTo, dimensionCategoryVerticalStartPoints, dimensionCategories);
-          }
-        }
-      });
-    }
-    return finalPaths;
-  }
-  var printPaths = function(finalPaths, data, categoryRectSize, categoryGap, dimensionCategories) {
-    const svg = new Sight('.svg', 1500, 600);
-    finalPaths.forEach(function(categoryPath) {
-      var finalPath = categoryPath["finalPath"];
-      var baseCategory = categoryPath["baseCategory"];
-      var tooltip = categoryPath["tooltip"];
-      //var tooltipInnerHTML = "<title class='tooltip'>" + tooltip + "</title>";
-      var svgPath = svg.draw('path', {
-        class: baseCategory,
-        d: finalPath
-      });
-      svgPath.node.addEventListener("mouseover", function(oEvent) {
-        var tooltipDiv = document.getElementsByClassName("tooltip")[0];
-        tooltipDiv.innerHTML = tooltip;
-        tooltipDiv.style.left = oEvent.x + 10 + "px";
-        tooltipDiv.style.top = oEvent.y + 10 + "px";
-        tooltipDiv.style.display = "block";
-        tooltipDiv.style.position = "absolute";
-      });
-      svgPath.node.addEventListener("mouseleave", function(oEvent) {
-        var tooltipDiv = document.getElementsByClassName("tooltip")[0];
-        tooltipDiv.style.display = "none";
-      });
-    });
-    printCategoryRectangles(finalPaths, data, categoryRectSize, categoryGap, svg, dimensionCategories);
-  }
-  var printCategoryRectangles = function(finalPaths, data, categoryRectSize, categoryGap, svg, dimensionCategories) {
-    var dimensionCategoryHorizontalStartPointsFrom = getDimensionCategoryHorizontalStartPoints(data, categoryRectSize, categoryGap);
-    var dimensionCategoryVerticalStartPoints = getDimensionCategoryVerticalStartPoints(600);
-    for (var dimension in dimensionCategories) {
-      var categories = dimensionCategories[dimension];
-      var startY = dimensionCategoryVerticalStartPoints[dimension] - 25;
-      svg.draw('text', {
-        class: "dimension",
-        x: 5,
-        y: startY
-      }, dimension);
-      startY = startY + 20;
-      categories.forEach(function(category) {
-        var startX = dimensionCategoryHorizontalStartPointsFrom[dimension][category];
-        var endX = startX + categoryRectSize[dimension][category];
-        //<tspan class="name">Sex</tspan>
-        svg.draw('text', {
-          class: "category",
-          x: startX + 5,
-          y: startY
-        }, category);
-        //<line x1="0" y1="80" x2="100" y2="20" stroke="black" />
-        svg.draw('line', {
-          x1: startX,
-          y1: startY + 5,
-          x2: endX,
-          y2: startY + 5
-        });
-      });
-    }
-  }
-  var getInitialDistributionJson = function() {
-    var distributionJson = {};
-    dimensions.forEach(function(dimension) {
-      distributionJson[dimension] = {};
-    });
-    return distributionJson;
-  }
-  var data = d3.csv("data/train.csv", function(d) {
-    return {
-      Survived: d.Survived,
-      Sex: d.Sex,
-      Class: d.Pclass,
-      Embarked: d.Embarked
-    };
-  }).then(function(data) {
-    var dimensionSizeJson = prepareSizeJson(data);
-    var distributionJson = getInitialDistributionJson();
-    var categoryRectSize = getCategoryRectSize(dimensionSizeJson, 1500, 0.95);
-    var dimensionJson = prepareJsonPrimary(data, distributionJson, dimensionSizeJson, categoryRectSize);
-    var categoryGap = getCategoryGap(dimensionSizeJson, 1500, 0.05);
-    var dimensionCategories = getDimensionCategories(data);
-    var dimensionCategoryHorizontalStartPointsFrom = getDimensionCategoryHorizontalStartPoints(data, categoryRectSize, categoryGap);
-    var dimensionCategoryHorizontalStartPointsTo = getDimensionCategoryHorizontalStartPoints(data, categoryRectSize, categoryGap);
-    var dimensionCategoryVerticalStartPoints = getDimensionCategoryVerticalStartPoints(600);
-    var finalPaths = buildModifiedPaths([], dimensionJson, dimensionCategoryHorizontalStartPointsFrom, dimensionCategoryHorizontalStartPointsTo, dimensionCategoryVerticalStartPoints, dimensionCategories);
-    printPaths(finalPaths, data, categoryRectSize, categoryGap, dimensionCategories);
-    console.log("dimensionSizeJson");
-    console.log(dimensionSizeJson);
-    console.log("dimensionJson");
-    console.log(dimensionJson);
-    console.log("categoryRectSize");
-    console.log(categoryRectSize);
-    console.log("categoryGap");
-    console.log(categoryGap);
-    console.log("dimensionCategories");
-    console.log(dimensionCategories);
-    console.log("dimensionCategoryHorizontalStartPointsFrom");
-    console.log(dimensionCategoryHorizontalStartPointsFrom);
-    console.log("dimensionCategoryVerticalStartPoints");
-    console.log(dimensionCategoryVerticalStartPoints);
-    console.log("finalPaths");
-    console.log(finalPaths);
-  });
-  //console.log(data[0]);
-  </script>
-</body>
+                div.appendChild(label);
+                div.appendChild(select);
 
+                if (index > 1) {
+                    var remove_button = document.createElement("input");
+                    remove_button.setAttribute("id", "select-remove-" + index + "-button");
+                    remove_button.setAttribute("class", "select-remove-button");
+                    remove_button.setAttribute("type", "button");
+                    remove_button.setAttribute("value", "x");
+                    remove_button.addEventListener('click', function(index) {
+                        var div_element = document.getElementById("select-" + index + "-div");
+                        var div_container = document.querySelector('.select-divs');
+                        div_container.removeChild(div_element);
+                        var new_button = document.getElementById("select-" + (index - 1) + "-button");
+                        var plot_button = document.querySelector("#plot-button");
+                        if (index > 2) {
+                            var new_remove_button = document.getElementById("select-remove-" + (index - 1) + "-button");
+                            new_remove_button.removeAttribute("disabled");
+                            plot_button.removeAttribute("disabled");
+                        }
+                        if (index == 2) {
+                            plot_button.setAttribute("disabled", true);
+                        }
+                        new_button.removeAttribute("disabled");
+                    }.bind(null, index), false);
+                    div.appendChild(remove_button);
+                }
+
+                div.appendChild(button);
+
+                var div_container = document.querySelector('.select-divs');
+                div_container.appendChild(div);
+            }
+            function updateDimensions(event) {
+                var reader = new FileReader();
+                reader.onload = onReaderLoad;
+                reader.readAsText(event.target.files[0]);
+            }
+
+            function onReaderLoad(event){
+                file_input = event.target.result;
+                var obj = JSON.parse(file_input);
+                var keys = Object.keys(obj[0]);
+                renderDimensionSelection(1, keys);
+            }
+            var overallGroups = {};
+            var getCategoryRectSize = function (dimensionSizeJson, totalWidth, availableRectSlot, dimensions) {
+                var categoryRectSize = {};
+                dimensions.forEach(function (dimension) {
+                    var dimensionSize = dimensionSizeJson[dimension];
+                    var totalLength = dimensionSize["totalLength"];
+                    categoryRectSize[dimension] = {};
+                    for (var key in dimensionSize) {
+                        if (dimensionSize.hasOwnProperty(key) && key != "totalLength") {
+                            var categoryLength = dimensionSize[key];
+                            categoryRectSize[dimension][key] = (categoryLength * totalWidth * availableRectSlot) / totalLength;
+                        }
+                    }
+                });
+                return categoryRectSize;
+            }
+            var getCategoryGap = function (dimensionSizeJson, totalWidth, availableGapSlot, dimensions) {
+                var categoryGapSize = {};
+                dimensions.forEach(function (dimension) {
+                    var dimensionSize = dimensionSizeJson[dimension];
+                    var totalCategories = -1;
+                    for (var key in dimensionSize) {
+                        if (dimensionSize.hasOwnProperty(key) && key != "totalLength") {
+                            totalCategories = totalCategories + 1;
+                        }
+                    }
+                    if (totalCategories == 0) {
+                        categoryGapSize[dimension] = 0;
+                    } else {
+                        categoryGapSize[dimension] = (totalWidth * availableGapSlot) / totalCategories;
+                    }
+                });
+                return categoryGapSize;
+            }
+            var getDimensionCategories = function (d3Data, dimensions) {
+                var dimensionCategories = {};
+                dimensions.forEach(function (dimension) {
+                    var groups = getOverallGroups(d3Data, dimension);
+                    dimensionCategories[dimension] = [];
+                    groups.forEach(function (group) {
+                        dimensionCategories[dimension].push(group.key);
+                    });
+                });
+                return dimensionCategories;
+            }
+            var getDimensionCategoryHorizontalStartPoints = function (d3Data, categoryRectSize, categoryGap, dimensions) {
+                var dimensionCategoryHorizontalStartPoint = {};
+                var dimensionCategories = getDimensionCategories(d3Data, dimensions);
+                dimensions.forEach(function (dimension) {
+                    dimensionCategoryHorizontalStartPoint[dimension] = {};
+                    var groups = dimensionCategories[dimension];
+                    var nextStartPoint = 0;
+                    groups.forEach(function (group) {
+                        dimensionCategoryHorizontalStartPoint[dimension][group] = nextStartPoint;
+                        nextStartPoint = nextStartPoint + categoryRectSize[dimension][group] + categoryGap[dimension];
+                    });
+                });
+                return dimensionCategoryHorizontalStartPoint;
+            }
+            var getDimensionCategoryVerticalStartPoints = function (height, dimensions) {
+                var dimensionCategoryVerticalStartPoint = {};
+                var baseStartPoint = height / 13.33;
+                var stepSize = (height - baseStartPoint) / (dimensions.length - 1);
+                dimensions.forEach(function (dimension) {
+                    dimensionCategoryVerticalStartPoint[dimension] = baseStartPoint;
+                    baseStartPoint = baseStartPoint + stepSize;
+                });
+                return dimensionCategoryVerticalStartPoint;
+            }
+            var getOverallGroups = function (d3Data, dimension) {
+                if (overallGroups[dimension]) {
+                    return overallGroups[dimension];
+                } else {
+                    var groups = d3.nest()
+                        .key(function (d) {
+                            return d[dimension];
+                        })
+                        .entries(d3Data);
+                    overallGroups[dimension] = groups;
+                    return overallGroups[dimension];
+                }
+            }
+            var prepareSizeJson = function (d3Data, dimensions) {
+                var sizeJson = {};
+                dimensions.forEach(function (dimension) {
+                    var groups = getOverallGroups(d3Data, dimension);
+                    var dimensionSizeJson = {};
+                    var dimensionTotal = 0;
+                    groups.forEach(function (group) {
+                        dimensionSizeJson[group.key] = group.values.length;
+                        dimensionTotal = dimensionTotal + group.values.length;
+                    });
+                    sizeJson[dimension] = dimensionSizeJson;
+                    sizeJson[dimension]["totalLength"] = dimensionTotal;
+                });
+                return sizeJson;
+            }
+            var prepareJson = function (d3Data, index, distributionJson, dimensionSizeJson, categoryRectSize, fromKey, baseCategory, totalLength, dimensions) {
+                if (index == dimensions.length) {
+                    return;
+                } else {
+                    var groups = d3.nest()
+                        .key(function (d) {
+                            return d[dimensions[index]];
+                        })
+                        .entries(d3Data);
+                    var finalDistribution = {};
+                    groups.forEach(function (d) {
+                        if (distributionJson[d.key] === undefined) {
+                            distributionJson[d.key] = {};
+                        }
+                        var newDistributionJson = prepareJson(d.values, index + 1, distributionJson[d.key], dimensionSizeJson, categoryRectSize, d.key, baseCategory, totalLength, dimensions);
+                        if (newDistributionJson === undefined) {
+                            newDistributionJson = {};
+                            var path = {};
+                            path["baseCategory"] = baseCategory;
+                            path["fromKey"] = fromKey;
+                            path["toKey"] = d.key;
+                            path["totalLength"] = totalLength;
+                            path["catLength"] = d.values.length;
+                            path["value"] = (categoryRectSize[dimensions[index]][d.key] * d.values.length) / dimensionSizeJson[dimensions[index]][d.key];
+                            finalDistribution[d.key] = {};
+                            finalDistribution[d.key] = path;
+                        } else {
+                            var parentDistributionJson = {};
+                            var path = {};
+                            path["baseCategory"] = baseCategory;
+                            path["fromKey"] = fromKey;
+                            path["toKey"] = d.key;
+                            path["totalLength"] = totalLength;
+                            path["catLength"] = d.values.length;
+                            path["value"] = (categoryRectSize[dimensions[index]][d.key] * d.values.length) / dimensionSizeJson[dimensions[index]][d.key];
+                            finalDistribution[d.key] = {};
+                            finalDistribution[d.key] = path;
+                            finalDistribution[d.key]["children"] = newDistributionJson;
+                        }
+                        finalDistribution["level"] = index;
+                    });
+                    return finalDistribution;
+                }
+            }
+            var prepareJsonPrimary = function (d3Data, distributionJson, dimensionSizeJson, categoryRectSize, dimensions) {
+                distributionJson = {};
+                var groups = d3.nest()
+                    .key(function (d) {
+                        return d[dimensions[0]];
+                    })
+                    .entries(d3Data);
+                var groupIndex = 0;
+                groups.forEach(function (d) {
+                    if (distributionJson[d.key] === undefined) {
+                        distributionJson[d.key] = {};
+                    }
+                    newistributionJson = prepareJson(d.values, 1, distributionJson[d.key], dimensionSizeJson, categoryRectSize, d.key, groupIndex, d3Data.length, dimensions);
+                    var path = {};
+                    path["baseCategory"] = groupIndex;
+                    path["totalLength"] = d3Data.length;
+                    path["catLength"] = d.values.length;
+                    path["value"] = (categoryRectSize[dimensions[0]][d.key] * d.values.length) / dimensionSizeJson[dimensions[0]][d.key];
+                    distributionJson[d.key] = path;
+                    distributionJson[d.key]["children"] = newistributionJson;
+                    groupIndex = groupIndex + 1;
+                });
+                distributionJson["level"] = 0;
+                return distributionJson;
+            }
+            var buildModifiedPaths = function (finalPaths, dimensionJson, dimensionCategoryHorizontalStartPointsFrom, dimensionCategoryHorizontalStartPointsTo, dimensionCategoryVerticalStartPoints, dimensionCategories, dimensions) {
+                var level = dimensionJson["level"];
+                var dimensionFrom = dimensions[level - 1];
+                var dimensionTo = dimensions[level];
+                if (level == 0) {
+                    var zeroLevelCategories = dimensionCategories[dimensions[level]];
+                    zeroLevelCategories.forEach(function (category) {
+                        var path = dimensionJson[category];
+                        if (path.hasOwnProperty("children")) {
+                            buildModifiedPaths(finalPaths, path["children"], dimensionCategoryHorizontalStartPointsFrom, dimensionCategoryHorizontalStartPointsTo, dimensionCategoryVerticalStartPoints, dimensionCategories, dimensions);
+                        }
+                    });
+                } else if (level > 0) {
+                    var levelCategories = dimensionCategories[dimensions[level]];
+                    levelCategories.forEach(function (category) {
+                        var path = dimensionJson[category];
+                        if (path != undefined) {
+                            var fromKey = path.fromKey;
+                            var toKey = path.toKey;
+                            var pathLength = path.value;
+                            var baseCategory = path.baseCategory;
+                            var catLength = path.catLength;
+                            var totalLength = path.totalLength;
+                            var pathHorizontalStartFrom = dimensionCategoryHorizontalStartPointsFrom[dimensionFrom][fromKey];
+                            var pathHorizontalStartTo = dimensionCategoryHorizontalStartPointsTo[dimensionTo][toKey];
+                            var pathVerticalStartFrom = dimensionCategoryVerticalStartPoints[dimensionFrom];
+                            var pathVerticalStartTo = dimensionCategoryVerticalStartPoints[dimensionTo];
+                            var pathHorizontalEndFrom = pathHorizontalStartFrom + pathLength;
+                            var pathHorizontalEndTo = pathHorizontalStartTo + pathLength;
+                            var finalCategory = "category-" + baseCategory;
+                            var finalPath = "M " + pathHorizontalStartFrom + " " + pathVerticalStartFrom +
+                                " L " + pathHorizontalStartTo + " " + pathVerticalStartTo +
+                                " h " + pathLength +
+                                " L " + pathHorizontalEndFrom + " " + pathVerticalStartFrom +
+                                "Z"; //M 53.8119 45 L 220.727 229.333 h 582.535 L 636.347 45 Z"
+                            var categoryPath = {};
+                            categoryPath["baseCategory"] = finalCategory;
+                            categoryPath["finalPath"] = finalPath;
+                            categoryPath["tooltip"] = catLength + " / " + totalLength + "  ( " + (catLength * 100 / totalLength) + " % )";
+                            finalPaths.push(categoryPath);
+                            dimensionCategoryHorizontalStartPointsFrom[dimensionFrom][fromKey] = dimensionCategoryHorizontalStartPointsFrom[dimensionFrom][fromKey] + pathLength;
+                            dimensionCategoryHorizontalStartPointsTo[dimensionTo][toKey] = dimensionCategoryHorizontalStartPointsTo[dimensionTo][toKey] + pathLength;
+                            if (path.hasOwnProperty("children")) {
+                                buildModifiedPaths(finalPaths, path["children"], dimensionCategoryHorizontalStartPointsFrom, dimensionCategoryHorizontalStartPointsTo, dimensionCategoryVerticalStartPoints, dimensionCategories, dimensions);
+                            }
+                        }
+                    });
+                }
+                return finalPaths;
+            }
+            var plotPaths = function (finalPaths, data, categoryRectSize, categoryGap, dimensionCategories, dimensions) {
+                const svg = new Sight('.svg', 1500, 600);
+                finalPaths.forEach(function (categoryPath) {
+                    var finalPath = categoryPath["finalPath"];
+                    var baseCategory = categoryPath["baseCategory"];
+                    var tooltip = categoryPath["tooltip"];
+                    //var tooltipInnerHTML = "<title class='tooltip'>" + tooltip + "</title>";
+                    var svgPath = svg.draw('path', {
+                        class: baseCategory,
+                        d: finalPath
+                    });
+                    svgPath.node.addEventListener("mouseover", function (oEvent) {
+                        var tooltipDiv = document.getElementsByClassName("tooltip")[0];
+                        tooltipDiv.innerHTML = tooltip;
+                        tooltipDiv.style.left = oEvent.x + 10 + "px";
+                        tooltipDiv.style.top = oEvent.y + 10 + "px";
+                        tooltipDiv.style.display = "block";
+                        tooltipDiv.style.position = "absolute";
+                    });
+                    svgPath.node.addEventListener("mouseleave", function (oEvent) {
+                        var tooltipDiv = document.getElementsByClassName("tooltip")[0];
+                        tooltipDiv.style.display = "none";
+                    });
+                });
+                printCategoryRectangles(finalPaths, data, categoryRectSize, categoryGap, svg, dimensionCategories, dimensions);
+            }
+            var printCategoryRectangles = function (finalPaths, data, categoryRectSize, categoryGap, svg, dimensionCategories, dimensions) {
+                var dimensionCategoryHorizontalStartPointsFrom = getDimensionCategoryHorizontalStartPoints(data, categoryRectSize, categoryGap, dimensions);
+                var dimensionCategoryVerticalStartPoints = getDimensionCategoryVerticalStartPoints(600, dimensions);
+                for (var dimension in dimensionCategories) {
+                    var categories = dimensionCategories[dimension];
+                    var startY = dimensionCategoryVerticalStartPoints[dimension] - 25;
+                    svg.draw('text', {
+                        class: "dimension",
+                        x: 5,
+                        y: startY
+                    }, dimension);
+                    startY = startY + 20;
+                    categories.forEach(function (category) {
+                        var startX = dimensionCategoryHorizontalStartPointsFrom[dimension][category];
+                        var endX = startX + categoryRectSize[dimension][category];
+                        //<tspan class="name">Sex</tspan>
+                        svg.draw('text', {
+                            class: "category",
+                            x: startX + 5,
+                            y: startY
+                        }, category);
+                        //<line x1="0" y1="80" x2="100" y2="20" stroke="black" />
+                        svg.draw('line', {
+                            x1: startX,
+                            y1: startY + 5,
+                            x2: endX,
+                            y2: startY + 5
+                        });
+                    });
+                }
+            }
+            var getInitialDistributionJson = function (dimensions) {
+                var distributionJson = {};
+                dimensions.forEach(function (dimension) {
+                    distributionJson[dimension] = {};
+                });
+                return distributionJson;
+            }
+            var plotParallelSet = function(file_input, dimensions) {
+                var svg = document.querySelector(".svg"); 
+                svg.innerHTML = "";
+                var data = JSON.parse(file_input);
+                var dimensionSizeJson = prepareSizeJson(data, dimensions);
+                var distributionJson = getInitialDistributionJson(dimensions);
+                var categoryRectSize = getCategoryRectSize(dimensionSizeJson, 1500, 0.95, dimensions);
+                var dimensionJson = prepareJsonPrimary(data, distributionJson, dimensionSizeJson, categoryRectSize, dimensions);
+                var categoryGap = getCategoryGap(dimensionSizeJson, 1500, 0.05, dimensions);
+                var dimensionCategories = getDimensionCategories(data, dimensions);
+                var dimensionCategoryHorizontalStartPointsFrom = getDimensionCategoryHorizontalStartPoints(data, categoryRectSize, categoryGap, dimensions);
+                var dimensionCategoryHorizontalStartPointsTo = getDimensionCategoryHorizontalStartPoints(data, categoryRectSize, categoryGap, dimensions);
+                var dimensionCategoryVerticalStartPoints = getDimensionCategoryVerticalStartPoints(600, dimensions);
+                var finalPaths = buildModifiedPaths([], dimensionJson, dimensionCategoryHorizontalStartPointsFrom, dimensionCategoryHorizontalStartPointsTo, dimensionCategoryVerticalStartPoints, dimensionCategories, dimensions);
+                plotPaths(finalPaths, data, categoryRectSize, categoryGap, dimensionCategories, dimensions);
+                console.log("dimensionSizeJson");
+                console.log(dimensionSizeJson);
+                console.log("dimensionJson");
+                console.log(dimensionJson);
+                console.log("categoryRectSize");
+                console.log(categoryRectSize);
+                console.log("categoryGap");
+                console.log(categoryGap);
+                console.log("dimensionCategories");
+                console.log(dimensionCategories);
+                console.log("dimensionCategoryHorizontalStartPointsFrom");
+                console.log(dimensionCategoryHorizontalStartPointsFrom);
+                console.log("dimensionCategoryVerticalStartPoints");
+                console.log(dimensionCategoryVerticalStartPoints);
+                console.log("finalPaths");
+                console.log(finalPaths);
+            }
+        </script>
+    </body>
 </html>
